@@ -6,20 +6,1362 @@
 <title>Pulse — KPI Command Center</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230d0d0d'/%3E%3Cpath d='M6 20 L12 12 L17 17 L26 7' stroke='%233987e5' stroke-width='3' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='26' cy='7' r='3' fill='%239085e9'/%3E%3C/svg%3E">
 <style>
-  *{box-sizing:border-box;margin:0;padding:0}
-  body{background:#0d0d0d;color:#fff;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;
-    min-height:100vh;display:grid;place-items:center;text-align:center;padding:24px}
-  .mark{width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,rgba(57,135,229,.22),rgba(144,133,233,.22));
-    border:1px solid rgba(255,255,255,.14);display:grid;place-items:center;margin:0 auto 18px}
-  h1{font-size:20px;font-weight:650;margin-bottom:8px}
-  p{color:#898781;font-size:14px;max-width:360px}
+:root{
+  --page:#0d0d0d; --surface:#1a1a19; --surface-2:#222221; --surface-3:#2a2a28;
+  --ink:#ffffff; --ink-2:#c3c2b7; --muted:#898781;
+  --grid:#2c2c2a; --baseline:#383835; --border:rgba(255,255,255,.08); --border-2:rgba(255,255,255,.14);
+  --s1:#3987e5; --s2:#199e70; --s3:#c98500; --s4:#9085e9; --s5:#e66767;
+  --good:#0ca30c; --warn:#fab219; --serious:#ec835a; --crit:#d03b3b;
+  --accent:#3987e5; --accent-2:#9085e9;
+  --r:14px; --r-sm:9px;
+  --font:system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scrollbar-color:#3a3a38 var(--page)}
+body{background:var(--page);color:var(--ink);font-family:var(--font);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased;min-height:100vh}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:radial-gradient(900px 420px at 18% -8%,rgba(57,135,229,.10),transparent 60%),
+             radial-gradient(800px 420px at 85% -12%,rgba(144,133,233,.08),transparent 60%)}
+.wrap{position:relative;z-index:1;max-width:1240px;margin:0 auto;padding:0 24px 80px}
+
+/* ---------- header ---------- */
+header{display:flex;align-items:center;gap:16px;padding:22px 0 18px;flex-wrap:wrap}
+.logo{display:flex;align-items:center;gap:12px}
+.logo-mark{width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,rgba(57,135,229,.22),rgba(144,133,233,.22));
+  border:1px solid var(--border-2);display:grid;place-items:center;flex:none}
+.logo h1{font-size:17px;font-weight:650;letter-spacing:.2px}
+.logo small{display:block;font-size:11.5px;font-weight:450;color:var(--muted);letter-spacing:.4px;text-transform:uppercase}
+.spacer{flex:1}
+.hdr-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+select,button,input,textarea{font-family:inherit;font-size:13.5px;color:var(--ink)}
+.btn{background:var(--surface);border:1px solid var(--border-2);border-radius:var(--r-sm);padding:8px 14px;cursor:pointer;
+  display:inline-flex;align-items:center;gap:7px;font-weight:520;transition:background .15s,border-color .15s,transform .05s}
+.btn:hover{background:var(--surface-2);border-color:rgba(255,255,255,.22)}
+.btn:active{transform:translateY(1px)}
+.btn.primary{background:linear-gradient(135deg,#2a6fc4,#3987e5);border-color:rgba(57,135,229,.6)}
+.btn.primary:hover{background:linear-gradient(135deg,#2f7ad3,#4a92e9)}
+.btn.ghost{background:transparent;border-color:transparent;color:var(--ink-2)}
+.btn.ghost:hover{background:var(--surface);border-color:var(--border)}
+.btn.danger{border-color:rgba(208,59,59,.5);color:#f0908f}
+.btn.danger:hover{background:rgba(208,59,59,.12)}
+.yr{background:var(--surface);border:1px solid var(--border-2);border-radius:var(--r-sm);padding:8px 10px;cursor:pointer}
+.saved{font-size:12px;color:var(--muted);display:inline-flex;align-items:center;gap:6px;padding-right:2px}
+.saved .dot{width:7px;height:7px;border-radius:50%;background:var(--good);box-shadow:0 0 8px rgba(12,163,12,.7)}
+
+/* ---------- nav ---------- */
+nav{display:flex;gap:4px;overflow-x:auto;padding:4px;background:rgba(26,26,25,.7);border:1px solid var(--border);
+  border-radius:12px;margin-bottom:26px;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);position:sticky;top:10px;z-index:40}
+nav button{background:transparent;border:0;border-radius:9px;padding:9px 15px;color:var(--muted);cursor:pointer;
+  display:inline-flex;align-items:center;gap:8px;font-weight:530;white-space:nowrap;transition:color .15s,background .15s}
+nav button svg{opacity:.75}
+nav button:hover{color:var(--ink-2);background:rgba(255,255,255,.04)}
+nav button.on{color:var(--ink);background:var(--surface-3);box-shadow:inset 0 0 0 1px var(--border-2)}
+nav button.on svg{opacity:1}
+
+/* ---------- generic ---------- */
+.view{display:none;animation:fade .22s ease}
+.view.on{display:block}
+@keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:20px}
+.card h3{font-size:13px;font-weight:600;color:var(--ink-2);letter-spacing:.3px;margin-bottom:2px}
+.card .sub{font-size:12px;color:var(--muted)}
+.section-head{display:flex;align-items:end;gap:14px;margin:26px 0 14px;flex-wrap:wrap}
+.section-head h2{font-size:15px;font-weight:640;letter-spacing:.2px}
+.section-head .sub{font-size:12.5px;color:var(--muted)}
+.chips{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+.chip{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:9px 14px;font-size:12.5px;color:var(--muted)}
+.chip b{color:var(--ink);font-weight:620;margin-left:6px;font-size:13.5px}
+
+/* ---------- KPI tiles ---------- */
+.tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.tile{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px 18px 14px;position:relative;overflow:hidden;
+  transition:border-color .2s,transform .15s}
+.tile:hover{border-color:var(--border-2)}
+.tile.hero{grid-column:span 2;background:linear-gradient(160deg,rgba(57,135,229,.10),rgba(26,26,25,0) 55%),var(--surface)}
+.tile .lbl{font-size:12px;color:var(--muted);font-weight:540;letter-spacing:.2px;display:flex;align-items:center;gap:8px}
+.tile .lbl .sw{width:8px;height:8px;border-radius:3px;flex:none}
+.tile .val{font-size:27px;font-weight:660;letter-spacing:-.3px;margin:6px 0 2px;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.tile.hero .val{font-size:48px;letter-spacing:-1px}
+.tile .delta{font-size:12px;font-weight:600;padding:2px 8px;border-radius:99px;background:var(--surface-2)}
+.delta.up{color:#3ddc3d}.delta.down{color:#f08c8c}.delta.flat{color:var(--muted)}
+.tile .meta{font-size:11.5px;color:var(--muted);display:flex;justify-content:space-between;gap:8px;margin-top:2px}
+.tile .meter{height:4px;border-radius:99px;background:var(--surface-3);margin-top:10px;overflow:hidden}
+.tile .meter i{display:block;height:100%;border-radius:99px;transition:width .5s ease}
+.tile svg.spark{position:absolute;right:14px;top:14px;opacity:.95}
+.tile .hide-btn{position:absolute;top:8px;right:8px;z-index:3;opacity:0;background:rgba(13,13,13,.78);border:1px solid var(--border-2);
+  border-radius:7px;width:25px;height:25px;display:grid;place-items:center;color:var(--muted);cursor:pointer;transition:opacity .15s,color .15s}
+.tile:hover .hide-btn{opacity:1}
+.tile .hide-btn:hover{color:var(--ink);border-color:rgba(255,255,255,.32)}
+.dash-toolbar{display:flex;justify-content:flex-end;margin-bottom:10px}
+.hidden-chips{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 14px;justify-content:flex-end}
+.chip-btn{background:var(--surface);border:1px dashed var(--border-2);border-radius:99px;padding:6px 14px;color:var(--ink-2);
+  cursor:pointer;font-size:12.5px;transition:border-color .15s,color .15s}
+.chip-btn:hover{border-color:var(--accent);color:var(--ink)}
+.v-good{color:#fff}.v-warn{color:#fff}.v-crit{color:#fff}.v-none{color:var(--muted)}
+
+/* ---------- charts ---------- */
+.charts{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px}
+.charts .full{grid-column:1/-1}
+.chart-box svg{width:100%;height:auto;display:block}
+.legend{display:flex;gap:16px;font-size:12px;color:var(--ink-2);margin-top:4px;flex-wrap:wrap}
+.legend span{display:inline-flex;align-items:center;gap:7px}
+.legend i{width:10px;height:10px;border-radius:3px;display:inline-block}
+.legend i.line{height:3px;border-radius:2px;width:14px}
+
+/* ---------- attention ---------- */
+.attn{display:grid;grid-template-columns:2fr 1fr;gap:14px;margin-top:14px}
+.attn-list{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+.attn-item{display:flex;gap:12px;align-items:flex-start;padding:11px 13px;background:var(--surface-2);border:1px solid var(--border);border-radius:10px}
+.attn-item .ic{width:8px;height:8px;border-radius:50%;margin-top:6px;flex:none}
+.attn-item b{font-weight:600;font-size:13px}
+.attn-item .m{font-size:12px;color:var(--muted)}
+.empty-note{color:var(--muted);font-size:13px;padding:18px 4px;text-align:center}
+
+/* ---------- tables ---------- */
+.table-scroll{overflow-x:auto;border:1px solid var(--border);border-radius:var(--r);background:var(--surface)}
+table{width:100%;border-collapse:collapse;font-size:13px;min-width:720px}
+thead th{position:sticky;top:0;background:var(--surface-2);color:var(--muted);font-weight:580;font-size:11.5px;letter-spacing:.4px;
+  text-transform:uppercase;text-align:left;padding:11px 14px;border-bottom:1px solid var(--border);white-space:nowrap}
+tbody td{padding:11px 14px;border-bottom:1px solid var(--border);vertical-align:middle;white-space:nowrap}
+tbody tr:last-child td{border-bottom:0}
+tbody tr{transition:background .12s}
+tbody tr:hover{background:rgba(255,255,255,.025)}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:99px;font-size:11.5px;font-weight:600;background:var(--surface-3)}
+.pill::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.p-blue{color:#7ab3ef}.p-good{color:#4ade4a}.p-warn{color:#fbc64d}.p-crit{color:#f08c8c}.p-mut{color:var(--muted)}.p-vio{color:#b3aaf0}
+.rowbtns{display:flex;gap:4px;justify-content:flex-end;opacity:.35;transition:opacity .15s}
+tr:hover .rowbtns{opacity:1}
+.ibtn{background:transparent;border:1px solid transparent;border-radius:7px;width:28px;height:28px;display:grid;place-items:center;cursor:pointer;color:var(--ink-2)}
+.ibtn:hover{background:var(--surface-3);border-color:var(--border-2)}
+.ibtn.del:hover{color:#f08c8c;border-color:rgba(208,59,59,.4)}
+.tbl-empty{padding:34px;text-align:center;color:var(--muted)}
+.tbl-empty .big{font-size:15px;color:var(--ink-2);font-weight:600;margin-bottom:4px}
+
+/* ---------- modal ---------- */
+.overlay{position:fixed;inset:0;background:rgba(5,5,5,.66);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);display:none;place-items:center;z-index:100;padding:20px}
+.overlay.on{display:grid}
+.modal{background:var(--surface);border:1px solid var(--border-2);border-radius:16px;width:min(620px,100%);max-height:90vh;overflow-y:auto;
+  padding:24px;animation:pop .18s ease}
+@keyframes pop{from{opacity:0;transform:scale(.97) translateY(6px)}to{opacity:1;transform:none}}
+.modal h3{font-size:16px;font-weight:650;margin-bottom:16px}
+.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:13px}
+.field{display:flex;flex-direction:column;gap:5px}
+.field.wide{grid-column:1/-1}
+.field label{font-size:11.5px;color:var(--muted);font-weight:560;letter-spacing:.3px;text-transform:uppercase}
+.field .hint{font-size:11px;color:var(--muted);opacity:.8}
+.field input,.field select,.field textarea{background:var(--surface-2);border:1px solid var(--border-2);border-radius:var(--r-sm);
+  padding:9px 11px;outline:none;transition:border-color .15s;width:100%}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--accent)}
+.field textarea{resize:vertical;min-height:64px}
+.field input[type=date]{color-scheme:dark}
+.modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:20px}
+
+/* ---------- projections ---------- */
+.assume{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:13px}
+.assume .field input{background:var(--surface-2)}
+.assume .field.check{flex-direction:row;align-items:center;gap:9px;padding-top:22px}
+.assume .field.check input{width:16px;height:16px;accent-color:var(--accent)}
+.assume .field.check label{text-transform:none;font-size:13px;color:var(--ink-2)}
+
+/* ---------- guide ---------- */
+.guide{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.guide .card{line-height:1.65}
+.guide h4{font-size:13.5px;font-weight:640;margin-bottom:8px;display:flex;align-items:center;gap:9px}
+.guide p,.guide li{font-size:13px;color:var(--ink-2)}
+.guide ul{padding-left:18px;display:flex;flex-direction:column;gap:5px}
+.guide code{background:var(--surface-3);border-radius:5px;padding:1px 6px;font-size:12px;color:#9ec5f4}
+.kpi-def{display:flex;flex-direction:column;gap:9px}
+.kpi-def .row{display:flex;gap:10px;font-size:12.5px}
+.kpi-def .row b{color:var(--ink);min-width:170px;font-weight:600}
+.kpi-def .row span{color:var(--muted)}
+
+/* ---------- tooltip & toast ---------- */
+#tip{position:fixed;z-index:200;pointer-events:none;background:#222221;border:1px solid var(--border-2);border-radius:9px;
+  padding:8px 11px;font-size:12px;color:var(--ink-2);display:none;box-shadow:0 8px 24px rgba(0,0,0,.5);max-width:260px}
+#tip b{color:var(--ink)}
+#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--surface-2);
+  border:1px solid var(--border-2);border-radius:99px;padding:9px 20px;font-size:13px;z-index:300;transition:transform .25s ease;box-shadow:0 8px 30px rgba(0,0,0,.5)}
+#toast.on{transform:translateX(-50%) translateY(0)}
+
+@media(max-width:980px){.tiles{grid-template-columns:1fr 1fr}.charts{grid-template-columns:1fr}.attn{grid-template-columns:1fr}
+  .guide{grid-template-columns:1fr}.assume{grid-template-columns:1fr 1fr}.fgrid{grid-template-columns:1fr}.tile.hero{grid-column:span 2}}
+@media(max-width:560px){.tiles{grid-template-columns:1fr}.tile.hero{grid-column:span 1}.tile.hero .val{font-size:38px}}
 </style>
 </head>
 <body>
-  <div>
-    <div class="mark"><svg width="22" height="22" viewBox="0 0 32 32" fill="none"><path d="M5 21 L12 12 L17 17 L27 6" stroke="#3987e5" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><circle cx="27" cy="6" r="3.4" fill="#9085e9"/></svg></div>
-    <h1>Pulse is warming up</h1>
-    <p>The first data sync hasn't landed yet — check back shortly.</p>
+<div class="wrap">
+
+<header>
+  <div class="logo">
+    <div class="logo-mark">
+      <svg width="20" height="20" viewBox="0 0 32 32" fill="none"><path d="M5 21 L12 12 L17 17 L27 6" stroke="#3987e5" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><circle cx="27" cy="6" r="3.4" fill="#9085e9"/></svg>
+    </div>
+    <div>
+      <h1>Pulse</h1>
+      <small>KPI Command Center</small>
+    </div>
   </div>
+  <div class="spacer"></div>
+  <div class="hdr-actions">
+    <span class="saved" id="savedInd"><span class="dot"></span><span id="savedTxt">Autosaved</span></span>
+    <select class="yr" id="yearSel" title="Reporting year"></select>
+    <button class="btn ghost" id="btnImport" title="Restore from a JSON backup">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3v12m0 0 4-4m-4 4-4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+      Import</button>
+    <button class="btn" id="btnExport" title="Download a JSON backup of all data">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 15V3m0 12-4-4m4 4 4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+      Backup</button>
+    <input type="file" id="fileImport" accept=".json" style="display:none">
+  </div>
+</header>
+
+<nav id="nav">
+  <button data-v="dash" class="on"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="5" rx="2"/><rect x="13" y="10" width="8" height="11" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/></svg>Dashboard</button>
+  <button data-v="pipeline"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 4h16l-6 8v6l-4 2v-8L4 4z"/></svg>Pipeline</button>
+  <button data-v="revenue"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2v20M17 6.5c0-1.9-2.2-3-5-3s-5 1.1-5 3 1.8 2.6 5 3.2 5 1.5 5 3.3-2.2 3-5 3-5-1.1-5-3"/></svg>Revenue</button>
+  <button data-v="health"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19.5 12.6 12 20l-7.5-7.4a5 5 0 1 1 7.5-6.6 5 5 0 1 1 7.5 6.6z"/></svg>Client Health</button>
+  <button data-v="delivery"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.8v3M12 18.2v3M2.8 12h3M18.2 12h3M5.5 5.5l2.1 2.1M16.4 16.4l2.1 2.1M18.5 5.5l-2.1 2.1M7.6 16.4l-2.1 2.1"/></svg>Delivery</button>
+  <button data-v="proj"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-7 4 4 8-9"/><path d="M15 5h6v6"/></svg>Projections</button>
+  <button data-v="guide"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V4a2 2 0 0 0-2-2H6.5A2.5 2.5 0 0 0 4 4.5v15z"/><path d="M4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5"/></svg>Guide</button>
+</nav>
+
+<section class="view on" id="view-dash"></section>
+<section class="view" id="view-pipeline"></section>
+<section class="view" id="view-revenue"></section>
+<section class="view" id="view-health"></section>
+<section class="view" id="view-delivery"></section>
+<section class="view" id="view-proj"></section>
+<section class="view" id="view-guide"></section>
+
+</div>
+
+<div class="overlay" id="overlay"><div class="modal" id="modal"></div></div>
+<div id="tip"></div>
+<div id="toast">Saved</div>
+
+<script>
+"use strict";
+/* =========================================================
+   Pulse — single-file KPI command center
+   Data model mirrors the "Rolemade KPI v1" Excel workbook,
+   with month/year auto-derived from dates (no copy step).
+   ========================================================= */
+
+const LS_KEY = "rolemadePulseV1";
+/* Public/read-only builds: paste a Backup JSON here (and set the date) before pushing to the public repo.
+   When EMBEDDED_SNAPSHOT is set, the page boots read-only from this data instead of localStorage. */
+const EMBEDDED_SNAPSHOT = {"v":1,"targets":{"mrr":10000,"rpe":15000,"close":25,"cycle":30,"retention":85,"nps":50,"util":70,"otob":90},"assume":{"newMrr":1000,"churn":2,"renew":true,"projPerMo":1,"projAvg":2000,"usePipeline":true},"pipeline":[{"company":"BurnBootCamp","contact":"Nina Allocco","firstCall":"2026-07-07","proposal":"2026-07-07","outcome":"Open","value":699,"valueType":"Monthly retainer","signed":"","closed":"","notes":"","id":"adbc02gw5ay1"},{"company":"OTG Sports","contact":"Chris Martin","firstCall":"2026-07-04","proposal":"","outcome":"Won","value":1000,"valueType":"One-time","signed":"2026-07-14","closed":"","notes":"","id":"d9jmkfa0680e"}],"retainers":[{"id":"qzm5s8duzr74","client":"Linette Davis","fee":1000,"start":"2026-06-07","end":"2026-12-31","status":"Active","notes":"Take Flight & Thrive retainer"}],"projects":[{"id":"ktoln8ymzr74","client":"Landon Wood","name":"Growth Op OTP","fees":2000,"billed":"2026-05-31","start":"2026-05-31","end":"2026-05-31","status":"Completed","notes":"Coreva Wellness Setup Fee"},{"client":"Lachy","name":"SoundTake M1 Fee","fees":350,"billed":"2026-07-05","status":"Completed","notes":"","id":"k1lh86ikpv92"},{"client":"OTG Sports Management","name":"Website Initial Deposit","fees":500,"billed":"2026-07-14","status":"Completed","notes":"","id":"6nkctah3giuu"},{"client":"CCS International","name":"Dashboard Build P1","fees":500,"billed":"2026-07-09","status":"Completed","notes":"","id":"3lckhmy7hesy"},{"client":"Lachy","name":"Will Kidu Web Build","fees":250,"billed":"2026-07-11","status":"Completed","notes":"","id":"is0drol2hvip"}],"renewals":[{"id":"5al1u696zr74","client":"Linette Davis","engStart":"2026-06-07","due":"2026-08-07","outcome":"Pending","value":1000,"notes":"$1,000/mo retainer renewal"},{"id":"3f1kr7smzr74","client":"Landon Wood","engStart":"2026-05-31","due":"2026-07-31","outcome":"Pending","value":"","notes":"Follow-up after Growth Op OTP"}],"npsRows":[],"hours":[],"deliveries":[],"hiddenTiles":["retention","close","cycle","util","otob","nps","rpe","dealsWonMonth","newClientsMonth","pipeVal","renDue"]};
+const EMBEDDED_SNAPSHOT_DATE = "2026-07-20";
+const READONLY = !!EMBEDDED_SNAPSHOT;
+const MO = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const NOW = new Date();
+const CUR_Y = NOW.getFullYear(), CUR_M = NOW.getMonth();
+
+/* ---------- utilities ---------- */
+const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+function parseD(s){ if(!s) return null; const p = String(s).split("-"); if(p.length<3) return null;
+  const d = new Date(+p[0], +p[1]-1, +p[2]); return isNaN(d) ? null : d; }
+const ymOf = s => (s && s.length >= 7) ? s.slice(0,7) : null;
+const isoToday = () => `${CUR_Y}-${String(CUR_M+1).padStart(2,"0")}-${String(NOW.getDate()).padStart(2,"0")}`;
+const fmtD = s => { const d = parseD(s); return d ? `${MO[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}` : "—"; };
+const daysBetween = (a,b) => { const A=parseD(a), B=parseD(b); return (A&&B) ? Math.round((B-A)/864e5) : null; };
+const monthsAgo = s => { const d=parseD(s); return d ? Math.round((NOW-d)/864e5) : null; };
+
+const money = n => n==null || isNaN(n) ? "—" :
+  (n<0?"-":"") + "$" + (a => a>=1e6 ? (a/1e6).toFixed(1)+"M" : a>=1e4 ? (a/1e3).toFixed(1)+"K"
+    : a.toLocaleString("en-US",{maximumFractionDigits:0}))(Math.abs(n));
+const moneyFull = n => n==null || isNaN(n) ? "—" : (n<0?"-":"")+"$"+Math.abs(n).toLocaleString("en-US",{maximumFractionDigits:0});
+const pct  = n => n==null || isNaN(n) ? "—" : Math.round(n)+"%";
+const dayF = n => n==null || isNaN(n) ? "—" : Math.round(n)+"d";
+const numF = n => n==null || isNaN(n) ? "—" : String(Math.round(n));
+
+/* ---------- state ---------- */
+function seed(){
+  return {
+    v:1,
+    targets:{ mrr:10000, rpe:15000, close:25, cycle:30, retention:85, nps:50, util:70, otob:90 },
+    assume:{ newMrr:1000, churn:2, renew:true, projPerMo:1, projAvg:2000, usePipeline:true },
+    pipeline:[],
+    retainers:[
+      { id:uid(), client:"Linette Davis", fee:1000, start:"2026-06-07", end:"2026-12-31", status:"Active", notes:"Take Flight & Thrive retainer" }
+    ],
+    projects:[
+      { id:uid(), client:"Landon Wood", name:"Growth Op OTP", fees:2000, billed:"2026-05-31", start:"2026-05-31", end:"2026-05-31", status:"Completed", notes:"" }
+    ],
+    renewals:[
+      { id:uid(), client:"Linette Davis", engStart:"2026-06-07", due:"2026-08-07", outcome:"Pending", value:1000, notes:"$1,000/mo retainer renewal" },
+      { id:uid(), client:"Landon Wood", engStart:"2026-05-31", due:"2026-07-01", outcome:"Pending", value:"", notes:"Follow-up after Growth Op OTP" }
+    ],
+    npsRows:[
+      { id:uid(), client:"Brad", project:"Practice run", date:"2026-05-27", score:9, comments:"" },
+      { id:uid(), client:"Anonymous", project:"", date:"2026-05-27", score:5, comments:"" },
+      { id:uid(), client:"Anonymous", project:"", date:"2026-05-27", score:8, comments:"" }
+    ],
+    hours:[], deliveries:[], hiddenTiles:[]
+  };
+}
+function load(){
+  if(EMBEDDED_SNAPSHOT){
+    const d = seed();
+    const s = EMBEDDED_SNAPSHOT;
+    d.targets = Object.assign(d.targets, s.targets||{});
+    d.assume  = Object.assign(d.assume,  s.assume ||{});
+    for(const k of ["pipeline","retainers","projects","renewals","npsRows","hours","deliveries","hiddenTiles"])
+      d[k] = Array.isArray(s[k]) ? s[k] : [];
+    return d;
+  }
+  try{
+    const raw = localStorage.getItem(LS_KEY);
+    if(raw){ const s = JSON.parse(raw); if(s && s.v === 1){
+      const d = seed();
+      s.targets = Object.assign(d.targets, s.targets||{});
+      s.assume  = Object.assign(d.assume,  s.assume ||{});
+      for(const k of ["pipeline","retainers","projects","renewals","npsRows","hours","deliveries","hiddenTiles"])
+        if(!Array.isArray(s[k])) s[k] = [];
+      return s;
+    }}
+  }catch(e){}
+  return seed();
+}
+let state = load();
+let curYear = CUR_Y;
+let activeView = "dash";
+
+function save(silent){
+  if(READONLY){ renderAll(); return; }
+  localStorage.setItem(LS_KEY, JSON.stringify(state));
+  if(!silent){
+    document.getElementById("savedTxt").textContent =
+      "Saved " + NOW_TIME();
+    toast("Saved");
+  }
+  renderAll();
+}
+const NOW_TIME = () => new Date().toLocaleTimeString([], {hour:"numeric", minute:"2-digit"});
+let toastT;
+function toast(msg){
+  const t = document.getElementById("toast");
+  t.textContent = msg; t.classList.add("on");
+  clearTimeout(toastT); toastT = setTimeout(()=>t.classList.remove("on"), 1600);
+}
+
+/* =========================================================
+   METRIC DERIVATION  (per reporting year → arrays[12])
+   ========================================================= */
+function firstOf(y,mi){ return new Date(y,mi,1); }
+function lastOf(y,mi){ return new Date(y,mi+1,0); }
+/* A retainer counts in FULL for any month it overlaps (start month included). */
+function retainerActiveIn(r, y, mi){
+  if(r.status === "Paused") return false;
+  const s = parseD(r.start); if(!s) return false;
+  const e = parseD(r.end);
+  if(r.status === "Ended" && !e) return false;
+  return s <= lastOf(y,mi) && (!e || e >= firstOf(y,mi));
+}
+
+function retainerMonthly(y){
+  const out = Array(12).fill(0);
+  for(const r of state.retainers)
+    for(let mi=0; mi<12; mi++)
+      if(retainerActiveIn(r,y,mi)) out[mi] += (+r.fee || 0);
+  return out;
+}
+function projectMonthly(y){
+  const sum = Array(12).fill(0), cnt = Array(12).fill(0);
+  for(const p of state.projects){
+    const m = ymOf(p.billed); if(!m) continue;
+    const [yy,mm] = m.split("-").map(Number);
+    if(yy === y){ sum[mm-1] += (+p.fees || 0); cnt[mm-1]++; }
+  }
+  return { sum, cnt, rpe: sum.map((s,i)=> cnt[i] ? s/cnt[i] : null) };
+}
+const isMonthly = d => d.valueType === "Monthly retainer";
+const dealValStr = d => (+d.value) ? moneyFull(+d.value) + (isMonthly(d) ? "/mo" : "") : "—";
+/* split a set of deals into one-time vs monthly totals, rendered as "$X + $Y/mo" */
+function splitValue(deals){
+  const ot = deals.filter(d=>!isMonthly(d)).reduce((a,d)=>a+(+d.value||0),0);
+  const mo = deals.filter(d=> isMonthly(d)).reduce((a,d)=>a+(+d.value||0),0);
+  return { ot, mo, str: mo ? (ot ? `${moneyFull(ot)} + ${moneyFull(mo)}/mo` : `${moneyFull(mo)}/mo`) : moneyFull(ot) };
+}
+function dealCloseMonth(d){
+  if(d.outcome === "Won")  return ymOf(d.signed);
+  if(d.outcome === "Lost") return ymOf(d.closed || d.proposal || d.firstCall);
+  return null;
+}
+function pipelineMonthly(y){
+  const won = Array(12).fill(0), lost = Array(12).fill(0), cyc = Array.from({length:12},()=>[]);
+  for(const d of state.pipeline){
+    const m = dealCloseMonth(d); if(!m) continue;
+    const [yy,mm] = m.split("-").map(Number); if(yy !== y) continue;
+    if(d.outcome === "Won"){
+      won[mm-1]++;
+      const dd = daysBetween(d.firstCall, d.signed);
+      if(dd != null && dd >= 0) cyc[mm-1].push(dd);
+    } else lost[mm-1]++;
+  }
+  return {
+    won, lost,
+    close: won.map((w,i)=> (w+lost[i]) ? w/(w+lost[i])*100 : null),
+    cycle: cyc.map(a => a.length ? a.reduce((x,b)=>x+b,0)/a.length : null)
+  };
+}
+function retentionMonthly(y){
+  const due = Array(12).fill(0), kept = Array(12).fill(0), res = Array(12).fill(0);
+  for(const r of state.renewals){
+    const m = ymOf(r.due); if(!m) continue;
+    const [yy,mm] = m.split("-").map(Number); if(yy !== y) continue;
+    due[mm-1]++;
+    if(["Renewed","Expanded","Lost"].includes(r.outcome)){
+      res[mm-1]++;
+      if(r.outcome !== "Lost") kept[mm-1]++;
+    }
+  }
+  return { due, rate: res.map((n,i)=> n ? kept[i]/n*100 : null) };
+}
+const npsCat = s => s==null||s==="" ? null : (+s>=9 ? "Promoter" : +s>=7 ? "Passive" : "Detractor");
+function npsMonthly(y){
+  const P=Array(12).fill(0), D=Array(12).fill(0), N=Array(12).fill(0);
+  for(const r of state.npsRows){
+    const m = ymOf(r.date); if(!m) continue;
+    const [yy,mm]=m.split("-").map(Number); if(yy!==y) continue;
+    const c = npsCat(r.score); if(!c) continue;
+    N[mm-1]++; if(c==="Promoter")P[mm-1]++; if(c==="Detractor")D[mm-1]++;
+  }
+  return { n:N, p:P, d:D, nps: N.map((n,i)=> n ? Math.round((P[i]-D[i])/n*100) : null) };
+}
+function utilMonthly(y){
+  const utl=Array.from({length:12},()=>[]), bill=Array(12).fill(0);
+  for(const h of state.hours){
+    const m=ymOf(h.weekStart); if(!m) continue;
+    const [yy,mm]=m.split("-").map(Number); if(yy!==y) continue;
+    bill[mm-1]+= (+h.billable||0);
+    if(+h.available > 0) utl[mm-1].push((+h.billable||0)/+h.available*100);
+  }
+  return { bill, rate: utl.map(a=> a.length ? a.reduce((x,b)=>x+b,0)/a.length : null) };
+}
+const isOnTime  = d => d.actualEnd && d.plannedEnd ? parseD(d.actualEnd) <= parseD(d.plannedEnd) : null;
+const isOnBudget= d => (d.budget===""||d.budget==null) ? true : (+d.actualCost||0) <= +d.budget;
+function otobMonthly(y){
+  const tot=Array(12).fill(0), ok=Array(12).fill(0);
+  for(const d of state.deliveries){
+    const m=ymOf(d.actualEnd); if(!m) continue;
+    const [yy,mm]=m.split("-").map(Number); if(yy!==y) continue;
+    tot[mm-1]++;
+    if(isOnTime(d) && isOnBudget(d)) ok[mm-1]++;
+  }
+  return { tot, rate: tot.map((n,i)=> n ? ok[i]/n*100 : null) };
+}
+
+function metricsFor(y){
+  const mrr = retainerMonthly(y), proj = projectMonthly(y), pipe = pipelineMonthly(y),
+        ret = retentionMonthly(y), nps = npsMonthly(y), utl = utilMonthly(y), oto = otobMonthly(y);
+  return {
+    mrr:  mrr.map((v,i)=> (y<CUR_Y || (y===CUR_Y && i<=CUR_M) || v>0) ? v : null),
+    mrrRaw: mrr, projSum: proj.sum, projCnt: proj.cnt,
+    rpe: proj.rpe, close: pipe.close, cycle: pipe.cycle, won: pipe.won, lost: pipe.lost,
+    retention: ret.rate, due: ret.due,
+    nps: nps.nps, npsN: nps.n,
+    util: utl.rate, bill: utl.bill,
+    otob: oto.rate, otobN: oto.tot
+  };
+}
+
+/* KPI catalogue — mirrors the Excel Dashboard rows */
+function kpiDefs(){
+  const t = state.targets;
+  return [
+    { key:"mrr", label:"Monthly recurring revenue", target:t.mrr, dir:1, fmt:money, full:moneyFull, color:"var(--s1)", ytd:(m)=>money(m.mrrRaw.reduce((a,b)=>a+b,0))+" booked", hero:true },
+    { key:"rpe", label:"Revenue per engagement", target:t.rpe, dir:1, fmt:money, full:moneyFull, color:"var(--s4)", ytd:(m)=>{const v=m.projSum.reduce((a,b)=>a+b,0),c=m.projCnt.reduce((a,b)=>a+b,0);return c? money(v/c)+" avg YTD":"no projects yet";} },
+    { key:"close", label:"Proposal-to-close rate", target:t.close, dir:1, fmt:pct, full:pct, color:"var(--s2)", ytd:(m)=>{const w=m.won.reduce((a,b)=>a+b,0),l=m.lost.reduce((a,b)=>a+b,0);return (w+l)? pct(w/(w+l)*100)+" YTD ("+w+"W/"+l+"L)":"no closed deals";} },
+    { key:"cycle", label:"Sales cycle length", target:t.cycle, dir:-1, fmt:dayF, full:dayF, color:"var(--s3)", ytd:(m)=>{const a=m.cycle.filter(v=>v!=null);return a.length? dayF(a.reduce((x,b)=>x+b,0)/a.length)+" avg YTD":"no won deals";} },
+    { key:"retention", label:"Client retention rate", target:t.retention, dir:1, fmt:pct, full:pct, color:"var(--s2)", ytd:(m)=>{const d=m.due.reduce((a,b)=>a+b,0);return d+" renewal"+(d===1?"":"s")+" tracked";} },
+    { key:"nps", label:"Net promoter score", target:t.nps, dir:1, fmt:numF, full:numF, color:"var(--s4)", ytd:(m)=>{const n=m.npsN.reduce((a,b)=>a+b,0);return n+" response"+(n===1?"":"s")+" YTD";} },
+    { key:"util", label:"Utilization rate", target:t.util, dir:1, fmt:pct, full:pct, color:"var(--s1)", ytd:(m)=>{const b=m.bill.reduce((a,b2)=>a+b2,0);return b? b.toLocaleString()+" billable hrs YTD":"no hours logged";} },
+    { key:"otob", label:"On-time / on-budget", target:t.otob, dir:1, fmt:pct, full:pct, color:"var(--s2)", ytd:(m)=>{const n=m.otobN.reduce((a,b)=>a+b,0);return n+" project"+(n===1?"":"s")+" delivered";} }
+  ];
+}
+function latestVal(arr){
+  const cap = curYear===CUR_Y ? CUR_M : 11;
+  for(let i=cap;i>=0;i--) if(arr[i]!=null) return {v:arr[i], i};
+  return {v:null, i:-1};
+}
+function prevVal(arr, idx){ for(let i=idx-1;i>=0;i--) if(arr[i]!=null) return arr[i]; return null; }
+function statusOf(v, target, dir){
+  if(v==null || !target) return "none";
+  const ratio = dir>0 ? v/target : (v===0 ? 2 : target/v);
+  return ratio>=1 ? "good" : ratio>=0.72 ? "warn" : "crit";
+}
+const stColor = s => s==="good" ? "var(--good)" : s==="warn" ? "var(--warn)" : s==="crit" ? "var(--crit)" : "var(--baseline)";
+
+/* =========================================================
+   SVG CHART BUILDERS (inline, dependency-free)
+   ========================================================= */
+function niceMax(v){
+  if(v<=0) return 10;
+  const p = Math.pow(10, Math.floor(Math.log10(v)));
+  for(const m of [1,1.5,2,2.5,3,4,5,6,8,10]) if(m*p >= v) return m*p;
+  return 10*p;
+}
+function sparkSVG(vals, color){
+  const w=118,h=40,pad=4;
+  const pts = vals.map((v,i)=>({v,i})).filter(p=>p.v!=null);
+  if(pts.length===0) return "";
+  let lo=Math.min(...pts.map(p=>p.v)), hi=Math.max(...pts.map(p=>p.v));
+  if(lo===hi){lo-=1;hi+=1;}
+  const X=i=> pad + i*(w-2*pad)/11, Y=v=> h-pad-(v-lo)/(hi-lo)*(h-2*pad);
+  let path="", prev=false;
+  for(const p of pts.length===1? [] : vals.map((v,i)=>({v,i}))){
+    if(p.v==null){prev=false;continue;}
+    path += (prev?"L":"M")+X(p.i).toFixed(1)+","+Y(p.v).toFixed(1)+" "; prev=true;
+  }
+  const last=pts[pts.length-1];
+  return `<svg class="spark" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
+    ${path?`<path d="${path}" fill="none" stroke="#4a4a46" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>`:""}
+    <circle cx="${X(last.i).toFixed(1)}" cy="${Y(last.v).toFixed(1)}" r="4" fill="${color}" stroke="var(--surface)" stroke-width="2"/>
+  </svg>`;
+}
+
+/* stacked monthly bars + optional target line */
+function stackedBarSVG(series, opts){
+  const W=980,H=290,pL=56,pR=16,pT=20,pB=30, plotW=W-pL-pR, plotH=H-pT-pB;
+  const totals = Array.from({length:12},(_,i)=> series.reduce((a,s)=> a+(s.values[i]||0),0));
+  const max = niceMax(Math.max(...totals, opts.target||0, 1)*1.08);
+  const y = v => pT + plotH - v/max*plotH;
+  const slot = plotW/12, bw = Math.min(24, slot*0.52);
+  let g = "";
+  for(let t=0;t<=4;t++){
+    const v = max*t/4, yy = y(v);
+    g += `<line x1="${pL}" y1="${yy}" x2="${W-pR}" y2="${yy}" stroke="var(--grid)" stroke-width="1"/>
+          <text x="${pL-9}" y="${yy+4}" text-anchor="end" font-size="11" fill="var(--muted)" style="font-variant-numeric:tabular-nums">${opts.yFmt(v)}</text>`;
+  }
+  let bars="";
+  for(let i=0;i<12;i++){
+    const cx = pL + slot*i + slot/2;
+    let cursor = pT+plotH;
+    const segs = series.map(s=>({name:s.name,color:s.color,v:s.values[i]||0})).filter(s=>s.v>0);
+    segs.forEach((s,si)=>{
+      const hpx = s.v/max*plotH;
+      const topSeg = si===segs.length-1;
+      const yTop = cursor - hpx;
+      if(topSeg && hpx>4){
+        const r = Math.min(4, bw/2, hpx);
+        bars += `<path d="M${(cx-bw/2).toFixed(1)},${cursor.toFixed(1)} V${(yTop+r).toFixed(1)} a${r},${r} 0 0 1 ${r},-${r} H${(cx+bw/2-r).toFixed(1)} a${r},${r} 0 0 1 ${r},${r} V${cursor.toFixed(1)} Z" fill="${s.color}"/>`;
+      } else {
+        bars += `<rect x="${(cx-bw/2).toFixed(1)}" y="${yTop.toFixed(1)}" width="${bw}" height="${Math.max(hpx,1).toFixed(1)}" fill="${s.color}"/>`;
+      }
+      cursor = yTop - 2; /* 2px surface gap between segments */
+    });
+    const tot = totals[i];
+    const tipRows = series.map(s=>`${esc(s.name)}: <b>${opts.yFmt(s.values[i]||0)}</b>`).join("<br>");
+    bars += `<rect x="${(pL+slot*i).toFixed(1)}" y="${pT}" width="${slot.toFixed(1)}" height="${plotH}" fill="transparent"
+      data-tip="<b>${MO[i]} ${curYear}</b><br>${tipRows}${series.length>1?`<br>Total: <b>${opts.yFmt(tot)}</b>`:""}"/>`;
+    g += `<text x="${cx}" y="${H-9}" text-anchor="middle" font-size="11" fill="var(--muted)">${MO[i]}</text>`;
+  }
+  let target="";
+  if(opts.target){
+    const ty=y(opts.target);
+    target = `<line x1="${pL}" y1="${ty}" x2="${W-pR}" y2="${ty}" stroke="var(--muted)" stroke-width="1.4" stroke-dasharray="5 4"/>
+      <text x="${W-pR}" y="${ty-6}" text-anchor="end" font-size="10.5" fill="var(--muted)">Target ${opts.yFmt(opts.target)}</text>`;
+  }
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(opts.label||"chart")}">
+    ${g}<line x1="${pL}" y1="${pT+plotH}" x2="${W-pR}" y2="${pT+plotH}" stroke="var(--baseline)" stroke-width="1"/>
+    ${bars}${target}</svg>`;
+}
+
+/* monthly line chart, one series, null gaps, dots, optional target */
+function lineChartSVG(values, opts){
+  const W=480,H=250,pL=44,pR=14,pT=18,pB=28, plotW=W-pL-pR, plotH=H-pT-pB;
+  const present = values.filter(v=>v!=null);
+  const rawMax = Math.max(...(present.length?present:[1]), opts.target||0, 1);
+  const rawMin = Math.min(...(present.length?present:[0]), 0);
+  const max = opts.maxHint ? Math.max(opts.maxHint, niceMax(rawMax)) : niceMax(rawMax*1.1);
+  const min = rawMin < 0 ? -niceMax(-rawMin) : 0;
+  const y = v => pT + plotH - (v-min)/(max-min)*plotH;
+  const X = i => pL + plotW/24 + i*plotW/12;
+  let g="";
+  for(let t=0;t<=4;t++){
+    const v=min+(max-min)*t/4, yy=y(v);
+    g += `<line x1="${pL}" y1="${yy}" x2="${W-pR}" y2="${yy}" stroke="var(--grid)" stroke-width="1"/>
+          <text x="${pL-8}" y="${yy+4}" text-anchor="end" font-size="10.5" fill="var(--muted)" style="font-variant-numeric:tabular-nums">${opts.yFmt(v)}</text>`;
+  }
+  for(let i=0;i<12;i++) g += `<text x="${X(i)}" y="${H-8}" text-anchor="middle" font-size="10.5" fill="var(--muted)">${MO[i]}</text>`;
+  let path="",prev=false, dots="";
+  values.forEach((v,i)=>{
+    if(v==null){prev=false;return;}
+    path += (prev?"L":"M")+X(i).toFixed(1)+","+y(v).toFixed(1)+" "; prev=true;
+    dots += `<circle cx="${X(i).toFixed(1)}" cy="${y(v).toFixed(1)}" r="4.5" fill="${opts.color}" stroke="var(--surface)" stroke-width="2"/>
+      <circle cx="${X(i).toFixed(1)}" cy="${y(v).toFixed(1)}" r="13" fill="transparent" data-tip="<b>${MO[i]} ${curYear}</b><br>${esc(opts.name)}: <b>${opts.yFmt(v)}</b>"/>`;
+  });
+  let target="";
+  if(opts.target!=null){
+    const ty=y(opts.target);
+    target=`<line x1="${pL}" y1="${ty}" x2="${W-pR}" y2="${ty}" stroke="var(--muted)" stroke-width="1.4" stroke-dasharray="5 4"/>
+      <text x="${W-pR}" y="${ty-6}" text-anchor="end" font-size="10" fill="var(--muted)">Target ${opts.yFmt(opts.target)}</text>`;
+  }
+  const zero = min<0 ? `<line x1="${pL}" y1="${y(0)}" x2="${W-pR}" y2="${y(0)}" stroke="var(--baseline)" stroke-width="1"/>` : "";
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(opts.name)}">
+    ${g}<line x1="${pL}" y1="${pT+plotH}" x2="${W-pR}" y2="${pT+plotH}" stroke="var(--baseline)" stroke-width="1"/>${zero}
+    ${path?`<path d="${path}" fill="none" stroke="${opts.color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>`:""}
+    ${dots}${target}</svg>`;
+}
+
+/* projection: 2 series over arbitrary future labels, area on first */
+function projChartSVG(labels, s1, s2, target){
+  const W=980,H=300,pL=56,pR=16,pT=20,pB=30, plotW=W-pL-pR, plotH=H-pT-pB;
+  const n = labels.length;
+  const max = niceMax(Math.max(...s1.values, ...s2.values, target||0, 1)*1.1);
+  const y=v=> pT+plotH - v/max*plotH, X=i=> pL + plotW/(2*n) + i*plotW/n;
+  let g="";
+  for(let t=0;t<=4;t++){
+    const v=max*t/4, yy=y(v);
+    g+=`<line x1="${pL}" y1="${yy}" x2="${W-pR}" y2="${yy}" stroke="var(--grid)" stroke-width="1"/>
+        <text x="${pL-9}" y="${yy+4}" text-anchor="end" font-size="11" fill="var(--muted)" style="font-variant-numeric:tabular-nums">${money(v)}</text>`;
+  }
+  labels.forEach((l,i)=> g+=`<text x="${X(i)}" y="${H-9}" text-anchor="middle" font-size="10.5" fill="var(--muted)">${l}</text>`);
+  const mk = s => s.values.map((v,i)=>(i?"L":"M")+X(i).toFixed(1)+","+y(v).toFixed(1)).join(" ");
+  const area = `M${X(0).toFixed(1)},${y(s1.values[0]).toFixed(1)} ` +
+    s1.values.map((v,i)=>`L${X(i).toFixed(1)},${y(v).toFixed(1)}`).join(" ") +
+    ` L${X(n-1).toFixed(1)},${(pT+plotH).toFixed(1)} L${X(0).toFixed(1)},${(pT+plotH).toFixed(1)} Z`;
+  let dots="";
+  for(let i=0;i<n;i++){
+    dots += `<circle cx="${X(i).toFixed(1)}" cy="${y(s1.values[i]).toFixed(1)}" r="4" fill="${s1.color}" stroke="var(--surface)" stroke-width="2"/>`;
+    dots += `<rect x="${(X(i)-plotW/(2*n)).toFixed(1)}" y="${pT}" width="${(plotW/n).toFixed(1)}" height="${plotH}" fill="transparent"
+      data-tip="<b>${labels[i]}</b><br>${esc(s1.name)}: <b>${money(s1.values[i])}</b><br>${esc(s2.name)}: <b>${money(s2.values[i])}</b>"/>`;
+  }
+  let tgt="";
+  if(target){ const ty=y(target);
+    tgt=`<line x1="${pL}" y1="${ty}" x2="${W-pR}" y2="${ty}" stroke="var(--muted)" stroke-width="1.4" stroke-dasharray="5 4"/>
+      <text x="${W-pR}" y="${ty-6}" text-anchor="end" font-size="10.5" fill="var(--muted)">MRR target ${money(target)}</text>`;
+  }
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="MRR projection">
+    ${g}<line x1="${pL}" y1="${pT+plotH}" x2="${W-pR}" y2="${pT+plotH}" stroke="var(--baseline)" stroke-width="1"/>
+    <path d="${area}" fill="${s1.color}" opacity="0.10"/>
+    <path d="${mk(s1)}" fill="none" stroke="${s1.color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="${mk(s2)}" fill="none" stroke="${s2.color}" stroke-width="2" stroke-dasharray="1 0" stroke-linecap="round" stroke-linejoin="round"/>
+    ${dots}${tgt}</svg>`;
+}
+
+/* =========================================================
+   VIEWS
+   ========================================================= */
+let hiddenPanelOpen = false;
+function hideTile(k){ if(!state.hiddenTiles.includes(k)) state.hiddenTiles.push(k); save(true); toast("Metric hidden"); }
+function unhideTile(k){ state.hiddenTiles = state.hiddenTiles.filter(x=>x!==k); if(!state.hiddenTiles.length) hiddenPanelOpen=false; save(true); toast("Metric restored"); }
+function toggleHiddenPanel(){ hiddenPanelOpen = !hiddenPanelOpen; renderDash(); }
+const hideBtnHTML = k => READONLY ? "" : `<button class="hide-btn" onclick="hideTile('${k}')" title="Hide this metric">
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.9 10.9 0 0 1 12 20C5 20 1 12 1 12a19.8 19.8 0 0 1 5.06-5.94M9.9 4.24A10.4 10.4 0 0 1 12 4c7 0 11 8 11 8a19.9 19.9 0 0 1-3.22 4.31"/><path d="M14.12 14.12A3 3 0 1 1 9.88 9.88M1 1l22 22"/></svg></button>`;
+function statTileHTML(t){
+  return `<div class="tile">${hideBtnHTML(t.key)}
+    <div class="lbl"><span class="sw" style="background:${t.color}"></span>${t.label}</div>
+    <div class="val ${t.value==null?"v-none":""}">${t.value==null?"—":t.value}</div>
+    <div class="meta"><span>${t.subL||""}</span><span>${t.subR||""}</span></div>
+  </div>`;
+}
+
+function renderDash(){
+  const m = metricsFor(curYear);
+  const defs = kpiDefs();
+  const allTiles = [];
+  for(const d of defs){
+    const arr = m[d.key];
+    const {v, i} = latestVal(arr);
+    const pv = i>=0 ? prevVal(arr, i) : null;
+    const st = statusOf(v, d.target, d.dir);
+    let delta = "";
+    if(v!=null && pv!=null && pv!==0){
+      const ch = (v-pv)/Math.abs(pv)*100;
+      const goodDir = (ch>=0 ? 1 : -1) * d.dir >= 0;
+      delta = `<span class="delta ${Math.abs(ch)<0.5?"flat":goodDir?"up":"down"}" title="vs previous month with data">${ch>=0?"↑":"↓"} ${Math.abs(ch)<0.5?"flat":Math.abs(ch).toFixed(0)+"%"}</span>`;
+    }
+    const meterW = v==null||!d.target ? 0 : Math.min(100, (d.dir>0 ? v/d.target : v===0?100:d.target/v)*100);
+    allTiles.push({key:d.key, label:d.label, html:`<div class="tile ${d.hero?"hero":""}">
+      ${hideBtnHTML(d.key)}
+      ${sparkSVG(arr, d.color)}
+      <div class="lbl"><span class="sw" style="background:${d.color}"></span>${d.label}</div>
+      <div class="val ${v==null?"v-none":""}">${v==null?"—":d.fmt(v)} ${delta}</div>
+      <div class="meta"><span>${i>=0?MO[i]+" "+curYear:"No data yet"} · target ${d.fmt(d.target)}</span><span>${d.ytd(m)}</span></div>
+      <div class="meter"><i style="width:${meterW}%;background:${stColor(st)}"></i></div>
+    </div>`});
+  }
+
+  /* ---- extra optional metrics ---- */
+  const pw = pipelineWeighted();
+  const openD = state.pipeline.filter(d=>d.outcome==="Open");
+  const svOpen = splitValue(openD);
+  const capM = curYear===CUR_Y ? CUR_M : 11;
+  const retYTD = m.mrrRaw.slice(0,capM+1).reduce((a,b)=>a+b,0);
+  const prjYTD = m.projSum.slice(0,capM+1).reduce((a,b)=>a+b,0);
+  const retCl = new Set(state.retainers.filter(r=>r.status==="Active").map(r=>(r.client||"").trim().toLowerCase()).filter(Boolean));
+  const prjCl = new Set(state.projects.filter(p=>{const mm=ymOf(p.billed);return mm&&+mm.slice(0,4)===curYear;}).map(p=>(p.client||"").trim().toLowerCase()).filter(Boolean));
+  const allCl = new Set([...retCl, ...prjCl]);
+  const pj = projection();
+  const hitIdx = pj.projected.findIndex(v=>v>=state.targets.mrr);
+  const today0 = new Date(CUR_Y, CUR_M, NOW.getDate());
+  const renSoon = state.renewals.filter(r=>{ if(r.outcome!=="Pending"||!r.due) return false;
+    const diff=Math.round((parseD(r.due)-today0)/864e5); return diff<=60; });
+  const renOver = renSoon.filter(r=>Math.round((parseD(r.due)-today0)/864e5)<0).length;
+  const monthlyDeals = openD.filter(isMonthly).length;
+
+  /* ---- simple momentum metrics (no targets — just "is it moving") ---- */
+  const combinedByMonth = m.mrrRaw.map((v,i)=> v + (m.projSum[i]||0));
+  const monthRev = combinedByMonth[capM] || 0;
+  const prevMonthRev = capM>0 ? combinedByMonth[capM-1] : null;
+  const monthDelta = (prevMonthRev!=null && prevMonthRev>0) ? Math.round((monthRev-prevMonthRev)/prevMonthRev*100) : null;
+  const wonThisMonth = state.pipeline.filter(d=>{
+    if(d.outcome!=="Won") return false; const mm=dealCloseMonth(d); if(!mm) return false;
+    const [yy,mo]=mm.split("-").map(Number); return yy===curYear && mo-1===capM; });
+  const wonLastMonthCount = capM>0 ? state.pipeline.filter(d=>{
+    if(d.outcome!=="Won") return false; const mm=dealCloseMonth(d); if(!mm) return false;
+    const [yy,mo]=mm.split("-").map(Number); return yy===curYear && mo-1===capM-1; }).length : null;
+  const newClientsThisMonth = state.retainers.filter(r=>{
+    const mm=ymOf(r.start); if(!mm) return false; const [yy,mo]=mm.split("-").map(Number); return yy===curYear && mo-1===capM; });
+  let growthStreak=0;
+  for(let i=capM;i>0;i--){ if(combinedByMonth[i]>combinedByMonth[i-1] && combinedByMonth[i]>0) growthStreak++; else break; }
+
+  const extras = [
+    {key:"monthRev", label:"Revenue collected this month", color:"var(--s2)",
+      value: monthRev ? money(monthRev) : null,
+      subL: monthRev ? `Retainers ${money(m.mrrRaw[capM])} + Projects ${money(m.projSum[capM])}` : "Nothing booked yet",
+      subR: monthDelta==null ? MO[capM]+" "+curYear : `${monthDelta>=0?"↑":"↓"} ${Math.abs(monthDelta)}% vs last month`},
+    {key:"dealsWonMonth", label:"Deals won this month", color:"var(--s1)",
+      value: wonThisMonth.length || null,
+      subL: wonThisMonth.length ? splitValue(wonThisMonth).str+" signed" : "No deals signed yet",
+      subR: wonLastMonthCount==null ? "" : `${wonLastMonthCount} last month`},
+    {key:"newClientsMonth", label:"New clients this month", color:"var(--s4)",
+      value: newClientsThisMonth.length || null,
+      subL: newClientsThisMonth.length ? newClientsThisMonth.map(r=>r.client).join(", ") : "None started yet",
+      subR: MO[capM]+" "+curYear},
+    {key:"growthStreak", label:"Growth streak", color:"var(--s3)",
+      value: growthStreak>0 ? growthStreak+(growthStreak===1?" month":" months") : null,
+      subL: growthStreak>0 ? "Consecutive months revenue grew" : "No active streak — flat or down last month",
+      subR: `Through ${MO[capM]} ${curYear}`},
+    {key:"pipeMrr", label:"MRR in pipeline", color:"var(--s3)",
+      value: svOpen.mo ? money(svOpen.mo)+"/mo" : null,
+      subL: svOpen.mo ? `Weighted ${money(pw.mo)}/mo at ${Math.round(pw.rate*100)}% close` : "No open monthly deals",
+      subR: `${monthlyDeals} monthly deal${monthlyDeals===1?"":"s"}`},
+    {key:"pipeVal", label:"One-time value in pipeline", color:"var(--s5)",
+      value: svOpen.ot ? money(svOpen.ot) : null,
+      subL: svOpen.ot ? `Weighted ${money(pw.ot)} at ${Math.round(pw.rate*100)}% close` : "No open one-time deals",
+      subR: `${openD.length} open deal${openD.length===1?"":"s"}`},
+    {key:"ytdRev", label:"Revenue collected YTD", color:"var(--s2)",
+      value: (retYTD+prjYTD) ? money(retYTD+prjYTD) : null,
+      subL: `Retainers ${money(retYTD)}`, subR: `Projects ${money(prjYTD)}`},
+    {key:"clients", label:"Active clients", color:"var(--s1)",
+      value: allCl.size || null,
+      subL: `${retCl.size} on retainer`, subR: `${prjCl.size} project client${prjCl.size===1?"":"s"} this year`},
+    {key:"proj12", label:"Projected MRR in 12 mo", color:"var(--s4)",
+      value: money(pj.projected[11]),
+      subL: hitIdx<0 ? `${money(state.targets.mrr)} target beyond 12 mo` : `Hits ${money(state.targets.mrr)} target ~${pj.labels[hitIdx]}`,
+      subR: "From Projections assumptions"},
+    {key:"renDue", label:"Renewals due in 60 days", color:"var(--warn)",
+      value: renSoon.length || null,
+      subL: renSoon.length ? `${moneyFull(renSoon.reduce((a,r)=>a+(+r.value||0),0))}/mo at stake` : "Nothing coming due",
+      subR: renOver ? `${renOver} overdue` : ""}
+  ];
+  extras.forEach(t=> allTiles.push({key:t.key, label:t.label, html:statTileHTML(t)}));
+
+  const hidden = state.hiddenTiles;
+  const tiles = allTiles.filter(t=>!hidden.includes(t.key)).map(t=>t.html).join("");
+  const hiddenDefs = allTiles.filter(t=>hidden.includes(t.key));
+  const hiddenBar = (!READONLY && hiddenDefs.length) ? `
+    <div class="dash-toolbar"><button class="btn ghost" onclick="toggleHiddenPanel()">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+      Hidden metrics (${hiddenDefs.length})</button></div>
+    ${hiddenPanelOpen ? `<div class="hidden-chips">${hiddenDefs.map(t=>`<button class="chip-btn" onclick="unhideTile('${t.key}')">+ ${t.label}</button>`).join("")}</div>` : ""}` : "";
+
+  /* attention items */
+  const items = [];
+  const today = new Date(CUR_Y, CUR_M, NOW.getDate());
+  for(const r of state.renewals){
+    if(r.outcome !== "Pending" || !r.due) continue;
+    const d = parseD(r.due), diff = Math.round((d-today)/864e5);
+    if(diff < 0) items.push({sev:0, c:"var(--crit)", t:`${esc(r.client)} renewal is ${-diff}d overdue`, m:`Due ${fmtD(r.due)} — mark Renewed, Expanded or Lost`});
+    else if(diff <= 30) items.push({sev:1, c:"var(--warn)", t:`${esc(r.client)} renewal due in ${diff}d`, m:`Due ${fmtD(r.due)}${r.value?` · ${moneyFull(+r.value)}/mo`:""}`});
+  }
+  for(const r of state.retainers){
+    if(r.status!=="Active" || !r.end) continue;
+    const diff = Math.round((parseD(r.end)-today)/864e5);
+    if(diff>=0 && diff<=45) items.push({sev:1, c:"var(--warn)", t:`${esc(r.client)} retainer ends in ${diff}d`, m:`${moneyFull(+r.fee)}/mo drops off ${fmtD(r.end)} — start the renewal conversation`});
+  }
+  for(const d of state.pipeline){
+    if(d.outcome!=="Open") continue;
+    const age = monthsAgo(d.firstCall);
+    if(age!=null && age>30) items.push({sev:2, c:"var(--serious)", t:`${esc(d.company)} deal is ${age}d old and still open`, m:`First call ${fmtD(d.firstCall)}${d.value?` · ${moneyFull(+d.value)} on the table`:""}`});
+  }
+  for(const r of state.npsRows){
+    const age = monthsAgo(r.date);
+    if(npsCat(r.score)==="Detractor" && age!=null && age<=60)
+      items.push({sev:1, c:"var(--crit)", t:`Detractor score (${r.score}) from ${esc(r.client||"a client")}`, m:`${fmtD(r.date)} — follow up before renewal`});
+  }
+  items.sort((a,b)=>a.sev-b.sev);
+  const openDeals = state.pipeline.filter(d=>d.outcome==="Open");
+  const openVal = splitValue(openDeals);
+  const wonYTDdeals = state.pipeline.filter(d=>{const mm=dealCloseMonth(d);return d.outcome==="Won"&&mm&&+mm.slice(0,4)===curYear;});
+  const wonVal = splitValue(wonYTDdeals);
+  const annual = m.mrrRaw.reduce((a,b)=>a+b,0) + m.projSum.reduce((a,b)=>a+b,0);
+
+  document.getElementById("view-dash").innerHTML = `
+    ${hiddenBar}
+    <div class="tiles">${tiles}</div>
+
+    <div class="charts">
+      <div class="card chart-box full">
+        <h3>Revenue by month — ${curYear}</h3>
+        <div class="sub">Retainer MRR plus project fees billed. ${money(annual)} total booked this year.</div>
+        ${stackedBarSVG(
+          [{name:"Retainer MRR", color:"var(--s1)", values:m.mrrRaw},
+           {name:"Project fees", color:"var(--s4)", values:m.projSum}],
+          {yFmt:money, target:state.targets.mrr, label:"Revenue by month"})}
+        <div class="legend"><span><i style="background:var(--s1)"></i>Retainer MRR</span><span><i style="background:var(--s4)"></i>Project fees</span><span><i class="line" style="background:var(--muted)"></i>MRR target</span></div>
+      </div>
+      <div class="card chart-box">
+        <h3>Proposal-to-close rate</h3>
+        <div class="sub">Share of resolved deals won each month</div>
+        ${lineChartSVG(m.close, {name:"Close rate", color:"var(--s2)", yFmt:pct, target:state.targets.close, maxHint:100})}
+      </div>
+      <div class="card chart-box">
+        <h3>Net promoter score</h3>
+        <div class="sub">(Promoters − detractors) ÷ responses × 100</div>
+        ${lineChartSVG(m.nps, {name:"NPS", color:"var(--s4)", yFmt:numF, target:state.targets.nps, maxHint:100})}
+      </div>
+    </div>
+
+    <div class="attn">
+      <div class="card">
+        <h3>Needs attention</h3>
+        <div class="sub">Auto-flagged from your data — renewals, stale deals, detractors</div>
+        <div class="attn-list">
+          ${items.length ? items.map(i=>`<div class="attn-item"><span class="ic" style="background:${i.c}"></span><div><b>${i.t}</b><div class="m">${i.m}</div></div></div>`).join("")
+            : `<div class="empty-note">All clear. Nothing needs your attention right now.</div>`}
+        </div>
+      </div>
+      <div class="card">
+        <h3>Pipeline snapshot</h3>
+        <div class="sub">Live, regardless of reporting year</div>
+        <div class="attn-list">
+          <div class="attn-item"><span class="ic" style="background:var(--s1)"></span><div><b>${openDeals.length} open deal${openDeals.length===1?"":"s"}</b><div class="m">${openVal.str} in potential value</div></div></div>
+          <div class="attn-item"><span class="ic" style="background:var(--s2)"></span><div><b>${wonVal.str} won in ${curYear}</b><div class="m">Signed proposal value</div></div></div>
+          <div class="attn-item"><span class="ic" style="background:var(--s4)"></span><div><b>${state.retainers.filter(r=>r.status==="Active").length} active retainer${state.retainers.filter(r=>r.status==="Active").length===1?"":"s"}</b><div class="m">${moneyFull(state.retainers.filter(r=>r.status==="Active").reduce((a,r)=>a+(+r.fee||0),0))}/mo when all are live</div></div></div>
+        </div>
+      </div>
+    </div>`;
+}
+
+/* ---------- generic table ---------- */
+function tableHTML(cols, rows, entity, emptyTitle, emptyHint){
+  if(!rows.length) return `<div class="table-scroll"><div class="tbl-empty"><div class="big">${emptyTitle}</div>${emptyHint}</div></div>`;
+  const head = cols.map(c=>`<th class="${c.num?"num":""}">${c.h}</th>`).join("") + (READONLY?"":"<th></th>");
+  const body = rows.map(r=>{
+    const tds = cols.map(c=>`<td class="${c.num?"num":""}">${c.cell(r)}</td>`).join("");
+    const btns = READONLY ? "" : `<td><div class="rowbtns">
+      <button class="ibtn" title="Edit" onclick="openForm('${entity}','${r.id}')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17 3a2.8 2.8 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg></button>
+      <button class="ibtn del" title="Delete" onclick="delRow('${entity}','${r.id}')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m2 0v14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V6h12z"/></svg></button>
+    </div></td>`;
+    return `<tr>${tds}${btns}</tr>`;
+  }).join("");
+  return `<div class="table-scroll"><table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>`;
+}
+const pill = (txt, cls) => `<span class="pill ${cls}">${esc(txt)}</span>`;
+const outcomePill = o => o==="Won"?pill("Won","p-good"):o==="Lost"?pill("Lost","p-crit"):pill("Open","p-blue");
+const statusPill = s => s==="Active"?pill("Active","p-good"):s==="Paused"?pill("Paused","p-warn"):s==="Completed"?pill("Completed","p-good"):s==="In Progress"?pill("In progress","p-blue"):pill(s,"p-mut");
+const renewPill = o => o==="Renewed"?pill("Renewed","p-good"):o==="Expanded"?pill("Expanded","p-vio"):o==="Lost"?pill("Lost","p-crit"):pill("Pending","p-warn");
+const catPill = c => c==="Promoter"?pill("Promoter","p-good"):c==="Passive"?pill("Passive","p-warn"):c==="Detractor"?pill("Detractor","p-crit"):pill("—","p-mut");
+
+function sectionHead(title, sub, entity, btnLabel){
+  return `<div class="section-head"><div><h2>${title}</h2><div class="sub">${sub}</div></div><div class="spacer"></div>
+    ${READONLY?"":`<button class="btn primary" onclick="openForm('${entity}')">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>${btnLabel}</button>`}</div>`;
+}
+
+function renderPipeline(){
+  const m = metricsFor(curYear);
+  const open = state.pipeline.filter(d=>d.outcome==="Open");
+  const wonYTD = m.won.reduce((a,b)=>a+b,0), lostYTD = m.lost.reduce((a,b)=>a+b,0);
+  const cyc = m.cycle.filter(v=>v!=null);
+  const rows = [...state.pipeline].sort((a,b)=>(b.firstCall||"").localeCompare(a.firstCall||""));
+  document.getElementById("view-pipeline").innerHTML = `
+    ${sectionHead("Sales pipeline","One row per prospect. Sales cycle, close month and win rate are computed for you.","pipeline","Add deal")}
+    <div class="chips">
+      <span class="chip">Open deals<b>${open.length}</b></span>
+      <span class="chip">Open value<b>${splitValue(open).str}</b></span>
+      <span class="chip">Won / lost ${curYear}<b>${wonYTD} / ${lostYTD}</b></span>
+      <span class="chip">Close rate ${curYear}<b>${(wonYTD+lostYTD)?pct(wonYTD/(wonYTD+lostYTD)*100):"—"}</b></span>
+      <span class="chip">Avg cycle<b>${cyc.length?dayF(cyc.reduce((a,b)=>a+b,0)/cyc.length):"—"}</b></span>
+    </div>
+    ${tableHTML([
+      {h:"Prospect", cell:r=>`<b>${esc(r.company)}</b>${r.contact?`<div style="color:var(--muted);font-size:12px">${esc(r.contact)}</div>`:""}`},
+      {h:"First call", cell:r=>fmtD(r.firstCall)},
+      {h:"Proposal", cell:r=>fmtD(r.proposal)},
+      {h:"Signed", cell:r=>fmtD(r.signed)},
+      {h:"Cycle", num:1, cell:r=>{const d=daysBetween(r.firstCall,r.signed);return d!=null?d+"d":"—";}},
+      {h:"Value", num:1, cell:r=>dealValStr(r)},
+      {h:"Outcome", cell:r=>outcomePill(r.outcome)},
+      {h:"Notes", cell:r=>`<span style="color:var(--muted);max-width:180px;display:inline-block;overflow:hidden;text-overflow:ellipsis">${esc(r.notes||"")}</span>`}
+    ], rows, "pipeline", "No deals yet", "Add your first prospect — close rate and sales cycle start tracking automatically.")}`;
+}
+
+function renderRevenue(){
+  const m = metricsFor(curYear);
+  const curMrr = m.mrrRaw[curYear===CUR_Y?CUR_M:11];
+  const ret = [...state.retainers].sort((a,b)=>(b.start||"").localeCompare(a.start||""));
+  const prj = [...state.projects].sort((a,b)=>(b.billed||"").localeCompare(a.billed||""));
+  document.getElementById("view-revenue").innerHTML = `
+    ${sectionHead("Retainers","Section A of the old workbook. A retainer counts toward MRR in full for every month it overlaps, starting with its signing month.","retainer","Add retainer")}
+    <div class="chips">
+      <span class="chip">MRR this month<b>${moneyFull(curMrr)}</b></span>
+      <span class="chip">Active retainers<b>${state.retainers.filter(r=>r.status==="Active").length}</b></span>
+      <span class="chip">Booked ${curYear}<b>${moneyFull(m.mrrRaw.reduce((a,b)=>a+b,0))}</b></span>
+    </div>
+    ${tableHTML([
+      {h:"Client", cell:r=>`<b>${esc(r.client)}</b>`},
+      {h:"Monthly fee", num:1, cell:r=>moneyFull(+r.fee)},
+      {h:"Start", cell:r=>fmtD(r.start)},
+      {h:"End", cell:r=>fmtD(r.end)},
+      {h:"Status", cell:r=>statusPill(r.status)},
+      {h:"Annual value", num:1, cell:r=>{const y=retainerAnnual(r);return moneyFull(y);}},
+      {h:"Notes", cell:r=>`<span style="color:var(--muted)">${esc(r.notes||"")}</span>`}
+    ], ret, "retainer", "No retainers yet", "Add a monthly retainer and MRR starts calculating instantly.")}
+
+    ${sectionHead("Project engagements","Section B. Revenue per engagement is grouped by the month you billed.","project","Add project")}
+    <div class="chips">
+      <span class="chip">Projects ${curYear}<b>${m.projCnt.reduce((a,b)=>a+b,0)}</b></span>
+      <span class="chip">Project revenue ${curYear}<b>${moneyFull(m.projSum.reduce((a,b)=>a+b,0))}</b></span>
+      <span class="chip">Avg per engagement<b>${(()=>{const c=m.projCnt.reduce((a,b)=>a+b,0);return c?moneyFull(m.projSum.reduce((a,b)=>a+b,0)/c):"—";})()}</b></span>
+    </div>
+    ${tableHTML([
+      {h:"Client", cell:r=>`<b>${esc(r.client)}</b>`},
+      {h:"Project", cell:r=>esc(r.name||"—")},
+      {h:"Fees", num:1, cell:r=>moneyFull(+r.fees)},
+      {h:"Billed", cell:r=>fmtD(r.billed)},
+      {h:"Status", cell:r=>statusPill(r.status)},
+      {h:"Notes", cell:r=>`<span style="color:var(--muted)">${esc(r.notes||"")}</span>`}
+    ], prj, "project", "No projects yet", "Log one-off engagements here — they feed Revenue per Engagement.")}`;
+}
+function retainerAnnual(r){
+  let tot=0;
+  for(let mi=0;mi<12;mi++) if(retainerActiveIn(r,curYear,mi)) tot += (+r.fee||0);
+  return tot;
+}
+
+function renderHealth(){
+  const m = metricsFor(curYear);
+  const ren = [...state.renewals].sort((a,b)=>(a.due||"").localeCompare(b.due||""));
+  const nps = [...state.npsRows].sort((a,b)=>(b.date||"").localeCompare(a.date||""));
+  const resolved = state.renewals.filter(r=>["Renewed","Expanded","Lost"].includes(r.outcome));
+  const kept = resolved.filter(r=>r.outcome!=="Lost").length;
+  const allN = state.npsRows.filter(r=>npsCat(r.score));
+  const P = allN.filter(r=>npsCat(r.score)==="Promoter").length, D = allN.filter(r=>npsCat(r.score)==="Detractor").length;
+  document.getElementById("view-health").innerHTML = `
+    ${sectionHead("Renewals","Section A. Pending renewals don't count against you — the rate uses resolved outcomes only.","renewal","Add renewal")}
+    <div class="chips">
+      <span class="chip">Pending<b>${state.renewals.filter(r=>r.outcome==="Pending").length}</b></span>
+      <span class="chip">Retention (all time)<b>${resolved.length?pct(kept/resolved.length*100):"—"}</b></span>
+      <span class="chip">Renewals due ${curYear}<b>${m.due.reduce((a,b)=>a+b,0)}</b></span>
+    </div>
+    ${tableHTML([
+      {h:"Client", cell:r=>`<b>${esc(r.client)}</b>`},
+      {h:"Engagement start", cell:r=>fmtD(r.engStart)},
+      {h:"Renewal due", cell:r=>fmtD(r.due)},
+      {h:"Outcome", cell:r=>renewPill(r.outcome)},
+      {h:"Value", num:1, cell:r=>r.value?moneyFull(+r.value)+"/mo":"—"},
+      {h:"Notes", cell:r=>`<span style="color:var(--muted)">${esc(r.notes||"")}</span>`}
+    ], ren, "renewal", "No renewals tracked", "Add each client's renewal date — retention rate computes when you mark the outcome.")}
+
+    ${sectionHead("NPS surveys","Section B. Ask: “How likely are you to recommend us? (0–10)”. Category is automatic.","nps","Add score")}
+    <div class="chips">
+      <span class="chip">Responses<b>${allN.length}</b></span>
+      <span class="chip">Promoters / detractors<b>${P} / ${D}</b></span>
+      <span class="chip">NPS (all time)<b>${allN.length?Math.round((P-D)/allN.length*100):"—"}</b></span>
+    </div>
+    ${tableHTML([
+      {h:"Client", cell:r=>`<b>${esc(r.client||"—")}</b>`},
+      {h:"Project", cell:r=>esc(r.project||"—")},
+      {h:"Date", cell:r=>fmtD(r.date)},
+      {h:"Score", num:1, cell:r=>`<b>${r.score}</b>`},
+      {h:"Category", cell:r=>catPill(npsCat(r.score))},
+      {h:"Comments", cell:r=>`<span style="color:var(--muted)">${esc(r.comments||"")}</span>`}
+    ], nps, "nps", "No survey scores yet", "Log every NPS response — the monthly score computes automatically.")}`;
+}
+
+function renderDelivery(){
+  const m = metricsFor(curYear);
+  const hrs = [...state.hours].sort((a,b)=>(b.weekStart||"").localeCompare(a.weekStart||""));
+  const del = [...state.deliveries].sort((a,b)=>(b.actualEnd||"").localeCompare(a.actualEnd||""));
+  const u = m.util.filter(v=>v!=null);
+  document.getElementById("view-delivery").innerHTML = `
+    ${sectionHead("Weekly hours log","Section A. One row per person per week — utilization is billable ÷ available.","hours","Log week")}
+    <div class="chips">
+      <span class="chip">Billable hrs ${curYear}<b>${m.bill.reduce((a,b)=>a+b,0).toLocaleString()}</b></span>
+      <span class="chip">Avg utilization<b>${u.length?pct(u.reduce((a,b)=>a+b,0)/u.length):"—"}</b></span>
+      <span class="chip">Weeks logged<b>${state.hours.length}</b></span>
+    </div>
+    ${tableHTML([
+      {h:"Team member", cell:r=>`<b>${esc(r.member)}</b>`},
+      {h:"Week of", cell:r=>fmtD(r.weekStart)},
+      {h:"Billable", num:1, cell:r=>(+r.billable||0)+"h"},
+      {h:"Available", num:1, cell:r=>(+r.available||0)+"h"},
+      {h:"Utilization", num:1, cell:r=>+r.available>0?`<b>${pct((+r.billable||0)/+r.available*100)}</b>`:"—"}
+    ], hrs, "hours", "No hours logged", "Log a week of hours — 30 billable of 40 available = 75% utilization.")}
+
+    ${sectionHead("Project delivery log","Section B. On-time and on-budget are derived from the dates and costs you enter.","delivery","Add delivery")}
+    <div class="chips">
+      <span class="chip">Delivered ${curYear}<b>${m.otobN.reduce((a,b)=>a+b,0)}</b></span>
+      <span class="chip">On-time & on-budget<b>${(()=>{const r=m.otob.filter(v=>v!=null);return r.length?pct(r.reduce((a,b)=>a+b,0)/r.length):"—";})()}</b></span>
+    </div>
+    ${tableHTML([
+      {h:"Client", cell:r=>`<b>${esc(r.client)}</b>`},
+      {h:"Project", cell:r=>esc(r.project||"—")},
+      {h:"Planned end", cell:r=>fmtD(r.plannedEnd)},
+      {h:"Actual end", cell:r=>fmtD(r.actualEnd)},
+      {h:"Budget", num:1, cell:r=>moneyFull(r.budget!==""&&r.budget!=null?+r.budget:null)},
+      {h:"Actual cost", num:1, cell:r=>moneyFull(r.actualCost!==""&&r.actualCost!=null?+r.actualCost:null)},
+      {h:"On time", cell:r=>{const t=isOnTime(r);return t==null?pill("—","p-mut"):t?pill("Yes","p-good"):pill("No","p-crit");}},
+      {h:"On budget", cell:r=>isOnBudget(r)?pill("Yes","p-good"):pill("No","p-crit")}
+    ], del, "delivery", "No deliveries logged", "Enter planned vs actual dates and budget vs cost — the rate is automatic.")}`;
+}
+
+/* ---------- projections ---------- */
+function pipelineWeighted(){
+  /* open deals weighted by all-time close rate (target rate until deals resolve) */
+  const won = state.pipeline.filter(d=>d.outcome==="Won").length;
+  const lost = state.pipeline.filter(d=>d.outcome==="Lost").length;
+  const rate = (won+lost) ? won/(won+lost) : (state.targets.close/100);
+  const open = state.pipeline.filter(d=>d.outcome==="Open");
+  const sv = splitValue(open);
+  return { rate, mo: sv.mo*rate, ot: sv.ot*rate, rawMo: sv.mo, rawOt: sv.ot, n: open.length };
+}
+function projection(){
+  const a = state.assume;
+  const pw = pipelineWeighted();
+  const labels=[], contracted=[], projected=[], totalRev=[];
+  let g = 0;
+  for(let i=1;i<=12;i++){
+    const dt = new Date(CUR_Y, CUR_M+i, 1);
+    labels.push(MO[dt.getMonth()] + (dt.getMonth()===0||i===1 ? " ’"+String(dt.getFullYear()).slice(2) : ""));
+    let base = 0;
+    for(const r of state.retainers){
+      if(r.status==="Paused") continue;
+      const s=parseD(r.start); if(!s) continue;
+      const e=parseD(r.end);
+      if(r.status==="Ended" && !e) continue;
+      const active = a.renew ? dt>=s : retainerActiveIn(r, dt.getFullYear(), dt.getMonth());
+      if(active) base += (+r.fee||0);
+    }
+    const churnF = Math.pow(1-(+a.churn||0)/100, i);
+    g = g*(1-(+a.churn||0)/100) + (+a.newMrr||0);
+    let mrr = base*(a.renew?churnF:1) + g;
+    let oneTime = (+a.projPerMo||0)*(+a.projAvg||0);
+    if(a.usePipeline){
+      if(i >= 2) mrr += pw.mo;      /* weighted monthly deals land from month 2 */
+      oneTime += pw.ot/12;          /* weighted one-time value spread over the year */
+    }
+    contracted.push(base); projected.push(Math.round(mrr));
+    totalRev.push(Math.round(mrr + oneTime));
+  }
+  return {labels, projected, totalRev, contracted, pw};
+}
+function renderProj(){
+  const a = state.assume, t = state.targets;
+  const p = projection();
+  const hitIdx = p.projected.findIndex(v=>v>=t.mrr);
+  const hit = hitIdx<0 ? `not within 12 months at these assumptions` : `on pace for <b>${p.labels[hitIdx].replace("’"," ’")}</b>`;
+  const annual = p.totalRev.reduce((x,b)=>x+b,0);
+  document.getElementById("view-proj").innerHTML = `
+    <div class="section-head"><div><h2>12-month projection</h2>
+      <div class="sub">Starts from your actual retainer book, optionally adds your open pipeline weighted by close rate, then layers growth assumptions on top. Adjust and it recalculates live.</div></div></div>
+    <div class="card" style="margin-bottom:14px">
+      <div class="assume">
+        <div class="field"><label>New MRR added / month</label><input type="number" id="as-newMrr" value="${a.newMrr}" min="0" step="100"></div>
+        <div class="field"><label>Monthly churn %</label><input type="number" id="as-churn" value="${a.churn}" min="0" max="100" step="0.5"></div>
+        <div class="field"><label>New projects / month</label><input type="number" id="as-projPerMo" value="${a.projPerMo}" min="0" step="1"></div>
+        <div class="field"><label>Avg project fee ($)</label><input type="number" id="as-projAvg" value="${a.projAvg}" min="0" step="250"></div>
+        <div class="field check"><input type="checkbox" id="as-renew" ${a.renew?"checked":""}><label for="as-renew">Assume retainers renew past their end dates</label></div>
+        <div class="field check"><input type="checkbox" id="as-usePipeline" ${a.usePipeline?"checked":""}><label for="as-usePipeline">Include open pipeline, weighted by close rate</label></div>
+      </div>
+    </div>
+    <div class="chips">
+      <span class="chip">MRR in 12 months<b>${money(p.projected[11])}</b></span>
+      <span class="chip">${money(t.mrr)} MRR target<b>${hit}</b></span>
+      <span class="chip">Projected revenue, next 12 mo<b>${money(annual)}</b></span>
+      ${p.pw.n ? `<span class="chip" title="Open deals × ${Math.round(p.pw.rate*100)}% close rate">Weighted pipeline<b>${p.pw.mo?money(p.pw.mo)+"/mo":""}${p.pw.mo&&p.pw.ot?" + ":""}${p.pw.ot?money(p.pw.ot)+" one-time":""}${!p.pw.mo&&!p.pw.ot?"$0":""}</b></span>` : ""}
+    </div>
+    <div class="card chart-box">
+      <h3>Projected MRR vs total monthly revenue</h3>
+      <div class="sub">MRR (area) plus expected project fees on top</div>
+      ${projChartSVG(p.labels, {name:"Projected MRR", color:"var(--s1)", values:p.projected},
+                     {name:"MRR + project fees", color:"var(--s4)", values:p.totalRev}, t.mrr)}
+      <div class="legend"><span><i class="line" style="background:var(--s1)"></i>Projected MRR</span>
+        <span><i class="line" style="background:var(--s4)"></i>MRR + project fees</span>
+        <span><i class="line" style="background:var(--muted)"></i>MRR target</span></div>
+    </div>`;
+  for(const k of ["newMrr","churn","projPerMo","projAvg"]){
+    document.getElementById("as-"+k).addEventListener("change", e=>{
+      state.assume[k] = +e.target.value || 0; save(true); renderProj(); toast("Projection updated");
+    });
+  }
+  for(const k of ["renew","usePipeline"]){
+    document.getElementById("as-"+k).addEventListener("change", e=>{
+      state.assume[k] = e.target.checked; save(true); renderProj(); toast("Projection updated");
+    });
+  }
+}
+
+/* ---------- guide ---------- */
+function renderGuide(){
+  const t = state.targets;
+  document.getElementById("view-guide").innerHTML = `
+    <div class="section-head"><div><h2>How this works</h2><div class="sub">Everything the Excel did, without the copy-paste step.</div></div></div>
+    <div class="guide">
+      <div class="card"><h4>The workflow</h4>
+        <ul>
+          <li>Just <b>add rows as things happen</b> — a new deal, a signed retainer, an NPS reply, a week of hours.</li>
+          <li>Months, sales cycles, NPS categories, on-time/on-budget flags and every KPI are <b>derived automatically from your dates</b>. There is no monthly copy step and no Month/Year columns to fill.</li>
+          <li>The Dashboard always reflects the reporting year picked in the header.</li>
+          <li><b>Customize the dashboard:</b> hover any metric tile and hit the eye icon to hide it. Hidden tiles collect in the “Hidden metrics” button at the top right — click to restore. Your layout is saved.</li>
+        </ul></div>
+      <div class="card"><h4>Your data & backups</h4>
+        <ul>
+          <li>Data autosaves to this browser (localStorage) on every change — close the tab, come back, it's there.</li>
+          <li>Hit <b>Backup</b> weekly to download a JSON snapshot; <b>Import</b> restores it (on any machine).</li>
+          <li>Clearing browser data wipes localStorage — keep a recent backup.</li>
+        </ul>
+        ${READONLY?"":`<div style="margin-top:12px"><button class="btn danger" onclick="resetAll()">Reset all data…</button></div>`}</div>
+      <div class="card"><h4>KPI definitions & targets</h4>
+        <div class="kpi-def">
+          <div class="row"><b>MRR — ${money(t.mrr)}</b><span>Sum of retainer fees for every retainer active at any point in the month (start month counts in full)</span></div>
+          <div class="row"><b>Revenue / engagement — ${money(t.rpe)}</b><span>Project fees ÷ projects, by month billed</span></div>
+          <div class="row"><b>Close rate — ${t.close}%</b><span>Won ÷ (won + lost), by the month the deal resolved</span></div>
+          <div class="row"><b>Sales cycle — ${t.cycle}d</b><span>Signed date − first-call date, averaged over won deals</span></div>
+          <div class="row"><b>Retention — ${t.retention}%</b><span>(Renewed + expanded) ÷ resolved renewals; pending is excluded</span></div>
+          <div class="row"><b>NPS — ${t.nps}</b><span>(Promoters − detractors) ÷ responses × 100. 9–10 P · 7–8 Passive · 0–6 D</span></div>
+          <div class="row"><b>Utilization — ${t.util}%</b><span>Billable ÷ available hours, averaged across logged weeks</span></div>
+          <div class="row"><b>On-time / on-budget — ${t.otob}%</b><span>Projects meeting both, by actual end month</span></div>
+        </div></div>
+      <div class="card"><h4>Upgrades vs the spreadsheet</h4>
+        <ul>
+          <li><b>No copy step:</b> raw sheets fed a summary you copied to a dashboard. Here it's one pipeline, live.</li>
+          <li><b>MRR counts the signing month:</b> the Excel only counted retainers active on the 1st, so a mid-month signing showed $0 until the next month. Here the start month counts in full.</li>
+          <li><b>Retention is fairer:</b> the Excel counted pending renewals as failures; here only resolved outcomes count.</li>
+          <li><b>Ended retainers keep their history</b> (the Excel blanked all months when status changed).</li>
+          <li><b>On-time / on-budget is derived</b> from dates and costs instead of manual Yes/No dropdowns.</li>
+          <li><b>Needs-attention panel:</b> overdue renewals, stale deals, expiring retainers and recent detractors are flagged automatically.</li>
+          <li><b>Projections tab:</b> a forward 12-month MRR model the workbook didn't have. Deals marked <b>Monthly retainer</b> feed projected MRR (weighted by close rate, landing from month 2); one-time deals spread across the year.</li>
+        </ul></div>
+    </div>`;
+}
+
+/* =========================================================
+   FORMS
+   ========================================================= */
+const SCHEMAS = {
+  pipeline:{ list:"pipeline", name:"deal", fields:[
+    {k:"company",l:"Prospect / company",t:"text",req:1,wide:0},
+    {k:"contact",l:"Contact name",t:"text"},
+    {k:"firstCall",l:"First call date",t:"date",req:1,def:isoToday},
+    {k:"proposal",l:"Proposal sent",t:"date"},
+    {k:"outcome",l:"Outcome",t:"select",opts:["Open","Won","Lost"],def:"Open"},
+    {k:"value",l:"Proposal value ($)",t:"number"},
+    {k:"valueType",l:"Value type",t:"select",opts:["One-time","Monthly retainer"],def:"One-time",hint:"Monthly deals feed MRR projections when won"},
+    {k:"signed",l:"Contract signed date",t:"date",hint:"Set when won — drives sales cycle & close month"},
+    {k:"closed",l:"Closed-lost date",t:"date",hint:"Only for lost deals"},
+    {k:"notes",l:"Notes",t:"textarea",wide:1}
+  ]},
+  retainer:{ list:"retainers", name:"retainer", fields:[
+    {k:"client",l:"Client name",t:"text",req:1},
+    {k:"fee",l:"Monthly fee ($)",t:"number",req:1},
+    {k:"start",l:"Start date",t:"date",req:1,def:isoToday},
+    {k:"end",l:"End date",t:"date",hint:"Leave blank for ongoing"},
+    {k:"status",l:"Status",t:"select",opts:["Active","Paused","Ended"],def:"Active"},
+    {k:"notes",l:"Notes",t:"textarea",wide:1}
+  ]},
+  project:{ list:"projects", name:"project", fields:[
+    {k:"client",l:"Client",t:"text",req:1},
+    {k:"name",l:"Project name",t:"text"},
+    {k:"fees",l:"Total fees ($)",t:"number",req:1},
+    {k:"billed",l:"Date billed",t:"date",req:1,def:isoToday,hint:"Groups the revenue month"},
+    {k:"status",l:"Status",t:"select",opts:["In Progress","Completed"],def:"Completed"},
+    {k:"notes",l:"Notes",t:"textarea",wide:1}
+  ]},
+  renewal:{ list:"renewals", name:"renewal", fields:[
+    {k:"client",l:"Client",t:"text",req:1},
+    {k:"engStart",l:"Engagement start",t:"date"},
+    {k:"due",l:"Renewal due date",t:"date",req:1,hint:"Groups the retention month"},
+    {k:"outcome",l:"Outcome",t:"select",opts:["Pending","Renewed","Expanded","Lost"],def:"Pending"},
+    {k:"value",l:"Contract value ($/mo)",t:"number"},
+    {k:"notes",l:"Notes",t:"textarea",wide:1}
+  ]},
+  nps:{ list:"npsRows", name:"NPS response", fields:[
+    {k:"client",l:"Client",t:"text"},
+    {k:"project",l:"Project / engagement",t:"text"},
+    {k:"date",l:"Survey date",t:"date",req:1,def:isoToday},
+    {k:"score",l:"Score (0–10)",t:"number",req:1,min:0,max:10},
+    {k:"comments",l:"Comments",t:"textarea",wide:1}
+  ]},
+  hours:{ list:"hours", name:"week of hours", fields:[
+    {k:"member",l:"Team member",t:"text",req:1,def:()=> state.hours[0]?.member || "Jack"},
+    {k:"weekStart",l:"Week starting (Mon)",t:"date",req:1,def:isoToday},
+    {k:"billable",l:"Billable hours",t:"number",req:1,min:0},
+    {k:"available",l:"Available hours",t:"number",req:1,def:()=>40,min:1}
+  ]},
+  delivery:{ list:"deliveries", name:"delivery", fields:[
+    {k:"client",l:"Client",t:"text",req:1},
+    {k:"project",l:"Project",t:"text"},
+    {k:"plannedEnd",l:"Planned end date",t:"date",req:1},
+    {k:"actualEnd",l:"Actual end date",t:"date",req:1,def:isoToday},
+    {k:"budget",l:"Budget ($)",t:"number",hint:"Blank = no budget check"},
+    {k:"actualCost",l:"Actual cost ($)",t:"number"}
+  ]}
+};
+let editing = null;
+
+function openForm(entity, id){
+  if(READONLY) return;
+  const sc = SCHEMAS[entity];
+  const row = id ? state[sc.list].find(r=>r.id===id) : null;
+  editing = {entity, id: id||null};
+  const f = sc.fields.map(fd=>{
+    const val = row ? (row[fd.k] ?? "") : (typeof fd.def==="function" ? fd.def() : (fd.def ?? ""));
+    let input;
+    if(fd.t==="select")
+      input = `<select id="f-${fd.k}">${fd.opts.map(o=>`<option ${o===val?"selected":""}>${o}</option>`).join("")}</select>`;
+    else if(fd.t==="textarea")
+      input = `<textarea id="f-${fd.k}">${esc(val)}</textarea>`;
+    else
+      input = `<input id="f-${fd.k}" type="${fd.t}" value="${esc(val)}" ${fd.min!=null?`min="${fd.min}"`:""} ${fd.max!=null?`max="${fd.max}"`:""} ${fd.t==="number"?'step="any"':""}>`;
+    return `<div class="field ${fd.wide?"wide":""}"><label>${fd.l}${fd.req?" *":""}</label>${input}${fd.hint?`<span class="hint">${fd.hint}</span>`:""}</div>`;
+  }).join("");
+  document.getElementById("modal").innerHTML = `
+    <h3>${id?"Edit":"Add"} ${sc.name}</h3>
+    <div class="fgrid">${f}</div>
+    <div class="modal-actions">
+      <button class="btn ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn primary" onclick="submitForm()">${id?"Save changes":"Add "+sc.name}</button>
+    </div>`;
+  document.getElementById("overlay").classList.add("on");
+  const first = document.querySelector("#modal input, #modal select"); if(first) first.focus();
+}
+function closeModal(){ document.getElementById("overlay").classList.remove("on"); editing=null; }
+function submitForm(){
+  const sc = SCHEMAS[editing.entity];
+  const out = {};
+  for(const fd of sc.fields){
+    const el = document.getElementById("f-"+fd.k);
+    let v = el.value.trim();
+    if(fd.req && v===""){ el.style.borderColor="var(--crit)"; el.focus(); toast(fd.l+" is required"); return; }
+    if(fd.t==="number" && v!=="") v = +v;
+    out[fd.k] = v;
+  }
+  if(editing.entity==="pipeline" && out.outcome==="Won" && !out.signed){
+    const el=document.getElementById("f-signed"); el.style.borderColor="var(--crit)"; el.focus();
+    toast("A won deal needs a signed date"); return;
+  }
+  if(editing.id){
+    const r = state[sc.list].find(r=>r.id===editing.id); Object.assign(r, out);
+  } else {
+    out.id = uid(); state[sc.list].push(out);
+  }
+  closeModal(); save();
+}
+function delRow(entity, id){
+  if(READONLY) return;
+  const sc = SCHEMAS[entity];
+  const row = state[sc.list].find(r=>r.id===id);
+  const label = row ? (row.company||row.client||row.member||sc.name) : sc.name;
+  if(!confirm(`Delete this ${sc.name} (${label})? This can't be undone.`)) return;
+  state[sc.list] = state[sc.list].filter(r=>r.id!==id);
+  save();
+}
+function resetAll(){
+  if(READONLY) return;
+  if(!confirm("Reset ALL data? Every deal, retainer, score and log will be wiped.")) return;
+  if(!confirm("Last check — you'll lose everything unless you exported a backup. Continue?")) return;
+  localStorage.removeItem(LS_KEY); state = seed(); save(); toast("Reset to a fresh start");
+}
+
+/* =========================================================
+   BACKUP / RESTORE
+   ========================================================= */
+document.getElementById("btnExport").addEventListener("click", ()=>{
+  const blob = new Blob([JSON.stringify(state,null,2)], {type:"application/json"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `pulse-kpi-backup-${new Date().toISOString().slice(0,10)}.json`;
+  a.click(); URL.revokeObjectURL(a.href);
+  toast("Backup downloaded");
+});
+document.getElementById("btnImport").addEventListener("click", ()=>document.getElementById("fileImport").click());
+document.getElementById("fileImport").addEventListener("change", e=>{
+  const file = e.target.files[0]; if(!file) return;
+  const rd = new FileReader();
+  rd.onload = ()=>{
+    try{
+      const s = JSON.parse(rd.result);
+      if(!s || s.v!==1 || !Array.isArray(s.retainers)) throw 0;
+      if(!confirm("Replace ALL current data with this backup?")) return;
+      localStorage.setItem(LS_KEY, JSON.stringify(s));
+      state = load(); save(); toast("Backup restored");
+    }catch(err){ toast("That file isn't a valid Pulse backup"); }
+    e.target.value = "";
+  };
+  rd.readAsText(file);
+});
+
+/* =========================================================
+   SHELL
+   ========================================================= */
+function yearOptions(){
+  const ys = new Set([CUR_Y]);
+  const scan = (list, key) => list.forEach(r=>{ const m=ymOf(r[key]); if(m) ys.add(+m.slice(0,4)); });
+  scan(state.retainers,"start"); scan(state.projects,"billed"); scan(state.pipeline,"firstCall");
+  scan(state.renewals,"due"); scan(state.npsRows,"date"); scan(state.hours,"weekStart"); scan(state.deliveries,"actualEnd");
+  const sel = document.getElementById("yearSel");
+  const sorted = [...ys].sort((a,b)=>b-a);
+  sel.innerHTML = sorted.map(y=>`<option ${y===curYear?"selected":""}>${y}</option>`).join("");
+}
+document.getElementById("yearSel").addEventListener("change", e=>{ curYear = +e.target.value; renderAll(); });
+
+document.getElementById("nav").addEventListener("click", e=>{
+  const b = e.target.closest("button"); if(!b) return;
+  activeView = b.dataset.v;
+  document.querySelectorAll("#nav button").forEach(x=>x.classList.toggle("on", x===b));
+  document.querySelectorAll(".view").forEach(v=>v.classList.toggle("on", v.id==="view-"+activeView));
+  renderAll();
+});
+document.getElementById("overlay").addEventListener("click", e=>{ if(e.target.id==="overlay") closeModal(); });
+document.addEventListener("keydown", e=>{ if(e.key==="Escape") closeModal(); });
+
+/* tooltip */
+const tip = document.getElementById("tip");
+document.addEventListener("mousemove", e=>{
+  const t = e.target.closest && e.target.closest("[data-tip]");
+  if(t){
+    tip.innerHTML = t.getAttribute("data-tip");
+    tip.style.display = "block";
+    const r = tip.getBoundingClientRect();
+    let x = e.clientX+14, y = e.clientY+14;
+    if(x + r.width > innerWidth-10)  x = e.clientX - r.width - 12;
+    if(y + r.height > innerHeight-10) y = e.clientY - r.height - 12;
+    tip.style.left = x+"px"; tip.style.top = y+"px";
+  } else tip.style.display = "none";
+});
+
+const RENDERERS = { dash:renderDash, pipeline:renderPipeline, revenue:renderRevenue,
+  health:renderHealth, delivery:renderDelivery, proj:renderProj, guide:renderGuide };
+function renderAll(){ yearOptions(); RENDERERS[activeView](); }
+
+if(READONLY){
+  document.getElementById("btnImport").style.display = "none";
+  document.getElementById("btnExport").style.display = "none";
+  document.getElementById("fileImport").style.display = "none";
+  document.querySelector("#savedInd .dot").style.background = "var(--muted)";
+  document.querySelector("#savedInd .dot").style.boxShadow = "none";
+  document.getElementById("savedTxt").textContent = EMBEDDED_SNAPSHOT_DATE ? "Data as of " + fmtD(EMBEDDED_SNAPSHOT_DATE) : "Read-only snapshot";
+}
+
+renderAll();
+save(true); /* persist seed on first run */
+</script>
 </body>
 </html>
